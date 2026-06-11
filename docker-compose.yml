@@ -6,6 +6,10 @@ services:
     ports:
       - $USERS_PORT:$USERS_PORT
     env_file: .env
+    restart: always
+    environment:
+      USERS_PRIVATE_KEY: $USERS_PRIVATE_KEY
+      USERS_PUBLIC_KEY: $USERS_PUBLIC_KEY
     depends_on:
       users-db:
         condition: service_healthy
@@ -14,6 +18,7 @@ services:
     profiles:
       - users
       - all
+      - ""
 
   users-db:
     image: postgres:16-alpine
@@ -21,17 +26,15 @@ services:
     restart: always
     shm_size: 128mb
     container_name: $USERS_POSTGRES_HOST
-    ports:
-      - 5432:$USERS_POSTGRES_PORT
     environment:
       POSTGRES_USER: $USERS_POSTGRES_USER
       POSTGRES_PASSWORD: $USERS_POSTGRES_PASSWORD
       POSTGRES_HOST: $USERS_POSTGRES_HOST
-      POSTGRES_PORT: $USERS_POSTGRES_PORT
+      PGPORT: $USERS_POSTGRES_PORT
       POSTGRES_DB: $USERS_POSTGRES_DBNAME
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ../users/migrations:/docker-entrypoint-initdb.d
+      - users_postgres_data:/var/lib/postgresql/data
+      - ../summorist-users/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $USERS_POSTGRES_USER -d $USERS_POSTGRES_USER"]
       interval: 5s
@@ -42,6 +45,7 @@ services:
     profiles:
       - users
       - all
+      - ""
 
   mores-server:
     hostname: $MORES_HOST
@@ -51,13 +55,15 @@ services:
       - $MORES_PORT:$MORES_PORT
     env_file: .env
     depends_on:
-      mores-db:
-        condition: service_healthy
+       mores-db:
+         condition: service_healthy
+    restart: always
     networks:
       - smrt_net
     profiles:
       - mores
       - all
+      - ""
 
   mores-db:
     image: postgres:16-alpine
@@ -65,16 +71,14 @@ services:
     restart: always
     shm_size: 128mb
     container_name: $MORES_POSTGRES_HOST
-    ports:
-      - $MORES_POSTGRES_PORT:$MORES_POSTGRES_PORT
     environment:
       POSTGRES_USER: $MORES_POSTGRES_USER
       POSTGRES_PASSWORD: $MORES_POSTGRES_PASSWORD
       POSTGRES_HOST: $MORES_POSTGRES_HOST
-      POSTGRES_PORT: $MORES_POSTGRES_PORT
+      PGPORT: $MORES_POSTGRES_PORT
       POSTGRES_DB: $MORES_POSTGRES_DBNAME
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mores_postgres_data:/var/lib/postgresql/data
       - ../summorist-mores/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $MORES_POSTGRES_USER -d $MORES_POSTGRES_USER"]
@@ -86,11 +90,13 @@ services:
     profiles:
       - mores
       - all
+      - ""
 
 networks:
   smrt_net:
     driver: bridge
 
 volumes:
-  postgres_data:
+  users_postgres_data:
+  mores_postgres_data:
 
